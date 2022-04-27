@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  haproxy:
+    build: ./haproxy
+    ports:
+      - 80:80
+      - 8404:8404
+      - 9000:9000
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - ./haproxy/rsyslog.cfg:/etc/rsyslog.d/haproxy.conf
+    networks:
+      - haproxy_test
+    depends_on:
+      - server1
+      - server2
+      - server3
+    links:
+      - server1
+      - server2
+      - server3
+
+  server1:
+    build: ./server
+    ports:
+      - "8001:5000"
+    environment:
+      - SERVER_NAME=server1
+    networks:
+      - haproxy_test
+
+  server2:
+    build: ./server
+    ports:
+      - "8002:5000"
+    environment:
+      - SERVER_NAME=server2
+    networks:
+      - haproxy_test
+
+  server3:
+    build: ./server
+    ports:
+      - "8003:5000"
+    environment:
+      - SERVER_NAME=server3
+    networks:
+      - haproxy_test
+
+networks:
+  haproxy_test:
