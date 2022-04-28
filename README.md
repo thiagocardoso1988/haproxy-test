@@ -24,3 +24,6 @@ With the HAProxy container running, open the desired page, as specified below.
 
 - Default frontend: http://localhost:9000
 - Stats page: http://localhost:8404/stats
+- Data Plane API
+    - Docs: http://localhost:5555/v2/docs
+    - Specs (OpenAPI doc): http://localhost:5555/v2/specification

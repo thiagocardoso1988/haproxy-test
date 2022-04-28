@@ -5,10 +5,11 @@ services:
     build: ./haproxy
     ports:
       - 80:80
+      - 5555:5555
       - 8404:8404
       - 9000:9000
     volumes:
-      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:rw
       - ./haproxy/rsyslog.cfg:/etc/rsyslog.d/haproxy.conf
     networks:
       - haproxy_test
