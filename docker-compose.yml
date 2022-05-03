@@ -8,6 +8,7 @@ services:
       - 5555:5555
       - 8404:8404
       - 9000:9000
+      - 9999:9999
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:rw
       - ./haproxy/rsyslog.cfg:/etc/rsyslog.d/haproxy.conf
@@ -21,6 +22,15 @@ services:
       - server1
       - server2
       - server3
+
+  web:
+    build: ./web
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./web/:/usr/src/app/
+    networks:
+      - haproxy_test
 
   server1:
     build: ./server
