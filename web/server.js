@@ -12,6 +12,32 @@ const crypto = require("crypto");
 const host = '0.0.0.0';
 const port = 9090;
 
+const initializeRoom = () => {
+    // const https = require('https');
+
+    const options = {
+    hostname: 'example.com',
+    port: 443,
+    path: '/todos',
+    method: 'GET',
+    };
+
+    // const req = https.request(options, res => {
+    const req = https.request(options, res => {
+        console.log(`statusCode: ${res.statusCode}`);
+
+        res.on('data', d => {
+            process.stdout.write(d);
+        });
+    });
+
+    req.on('error', error => {
+    console.error(error);
+    });
+
+    req.end();
+
+}
 
 const rootHandler = (req, res) => {
     const queryObject = url.parse(req.url, true).query;
@@ -47,12 +73,13 @@ const endRoomHandler = (req, res) => {
     console.log('running endRoomHandler', '*'.repeat(50));
     const queryObject = url.parse(req.url, true).query;
 
-    // echo "help" | socat stdio tcp4-connect:127.0.0.1:9999
+    // const cmd = 'show table be1';
+    const cmd = 'clear table be1 key b7911e7a-4c00-4136-96c4-4a617c9fb4bd';
 
-    // const client = net.connect(9999, '0.0.0.0', function() {
     const client = net.connect(9999, 'haproxy', function() {
         console.log('Connected', '*'.repeat(50));
-        client.write('help\n');
+        // client.write('help\n');
+        client.write(`${cmd}\n`);
         console.log('**** done ****');
     });
 
