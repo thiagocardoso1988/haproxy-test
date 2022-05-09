@@ -12,18 +12,18 @@ const crypto = require("crypto");
 const host = '0.0.0.0';
 const port = 9090;
 
-const initializeRoom = () => {
+const initializeRoom = (room) => {
     // const https = require('https');
 
     const options = {
-    hostname: 'example.com',
-    port: 443,
-    path: '/todos',
-    method: 'GET',
+        hostname: 'haproxy',
+        port: 9000,
+        path: `/?room=${room}`,
+        method: 'GET',
     };
 
     // const req = https.request(options, res => {
-    const req = https.request(options, res => {
+    const req = http.request(options, res => {
         console.log(`statusCode: ${res.statusCode}`);
 
         res.on('data', d => {
@@ -32,7 +32,7 @@ const initializeRoom = () => {
     });
 
     req.on('error', error => {
-    console.error(error);
+        console.error(error);
     });
 
     req.end();
@@ -45,6 +45,9 @@ const rootHandler = (req, res) => {
 
     if (!queryObject.room) {
         const uuid = crypto.randomUUID({disableEntropyCache : true});
+
+        // console.log('*'.repeat(50));
+        // initializeRoom(uuid);
 
         res.writeHead(302, {
             'Location': `/?room=${uuid}`,
@@ -72,6 +75,7 @@ const rootHandler = (req, res) => {
 const endRoomHandler = (req, res) => {
     console.log('running endRoomHandler', '*'.repeat(50));
     const queryObject = url.parse(req.url, true).query;
+    console.log({ queryObject });
 
     // const cmd = 'show table be1';
     const cmd = 'clear table be1 key b7911e7a-4c00-4136-96c4-4a617c9fb4bd';

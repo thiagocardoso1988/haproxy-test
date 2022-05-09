@@ -1,0 +1,71 @@
+global
+    log         127.0.0.1 local2     #Log configuration
+    ssl-default-bind-options no-sslv3
+    ssl-default-bind-options no-tlsv10
+    tune.ssl.cachesize 100000
+    tune.ssl.lifetime 600
+    tune.ssl.maxrecord 0
+    tune.ssl.default-dh-param 2048
+    ssl-default-bind-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+    ssl-default-bind-options no-sslv3 no-tls-tickets no-tlsv11
+    ssl-default-server-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+    ssl-default-server-options no-sslv3 no-tls-tickets no-tlsv11
+    stats socket /var/run/haproxy.sock mode 660 level admin
+    stats timeout 30s
+
+frontend main_bridge
+	bind *:10000-20000
+	timeout client 60000
+	option logasap
+	log global
+	mode tcp
+	maxconn 20000
+	default_backend bridge-server
+
+frontend main_web
+	bind *:443 ssl crt /etc/ssl/web.net.pem
+	log-format "client\ =\ %ci:%cp,\ server\ =\ %si:%sp%HU\ (%s),\ backend\ =\ %bi:%bp\ (%b),\ status\ =\ %ST"
+	timeout client 60000
+	option logasap
+	log global
+	mode http
+	maxconn 20000
+	default_backend web-server
+
+backend bridge-server
+	balance source
+	stick-table type string len 256 size 200k expire 120m
+	stick on url_param(room) table web-server
+	option httpchk GET /about/health
+	http-check expect status 200
+	hash-type consistent
+	mode tcp
+	timeout connect 6000
+	timeout server 60000
+	server conf1-bridge1 172.30.1.1 check port 8080
+	server conf1-bridge2 172.30.1.2 check port 8080
+	server conf2-bridge1 172.30.0.1 check port 8080
+	server conf2-bridge2 172.30.0.2 check port 8080
+	
+backend web-server
+	balance source
+	stick-table type string len 256 size 200k expire 120m
+	stick on url_param(room) table web-server
+	option httpchk GET /
+	http-check expect status 200
+	mode http
+	timeout connect 6000
+	timeout server 60000
+	server conf1-meet 172.30.1.3:4444 check inter 6000 ssl verify required ca-file /etc/ssl/web.net.pem
+	server conf2-meet 172.30.0.3:4444 check inter 6000 ssl verify required ca-file /etc/ssl/web.net.pem
+
+frontend stats
+	bind *:9000 ssl crt /etc/ssl/web.net.pem
+	mode http
+	timeout client 600
+	log global
+	stats enable
+	stats hide-version
+	stats realm Haproxy\ Statistics
+	stats uri /
+	stats auth haproxyadmin:haproxystatspassword
